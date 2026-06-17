@@ -1,5 +1,6 @@
 import os
 import subprocess
+from google.genai import types
 
 
 def run_python_file(
@@ -45,3 +46,34 @@ def run_python_file(
         error_str = str(error)
         return f"Error: executing Python file: {error_str}"
     
+
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description="""
+    Returns an output that was assigned to the stdout of a CompletedProcess object of a python file.
+
+    If the returncode is not 0, adds this string to the output: Process exited with code <returncode>.
+
+    If both the stdout and stderr don't exist, adds this string to the output: No output produced.
+
+    If the stderr exists, adds stderr to the output.
+    """,
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        required=["file_path"],
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description= "Python file path to run the python file from, relative to the working directory"
+            ),
+            "args": types.Schema(
+                type=types.Type.ARRAY,
+                description="The list of the optional arguments to be added to the command that will be run",
+                items=types.Schema(
+                    type=types.Type.STRING,
+                    description="The optional argument of the command that will be run",
+                ),
+            ),
+        },
+    ),
+)
