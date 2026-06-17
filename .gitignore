@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+calculator/README.md
 
 # Virtual environments
 .venv
