@@ -28,7 +28,8 @@ This project uses [uv](https://github.com/astral-sh/uv) for fast Python package 
    ```bash
    uv venv
    source .venv/bin/activate
-   uv pip install google-generativeai python-dotenv
+   uv add google-genai==1.12.1
+   uv add python-dotenv==1.1.0
    ```
 3. **Set up environment variables:**
 
