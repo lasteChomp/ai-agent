@@ -1,5 +1,6 @@
 import os
 import argparse
+import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -26,50 +27,61 @@ def main():
         types.Content(role="user", parts=[types.Part(text=content)])
     ]
 
-    response = client.models.generate_content(
-        model=model, 
-        contents=messages,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0,
-            tools=[available_functions]
+    for _ in range(20):
+        response = client.models.generate_content(
+            model=model, 
+            contents=messages,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0,
+                tools=[available_functions]
+            )
         )
-    )
 
-    if response.usage_metadata is None:
-        raise RuntimeError("api request failed")
+        if response.candidates:
+            for candidate in response.candidates:
+                if candidate.content:
+                    messages.append(candidate.content)
 
-    tokens_prompt = response.usage_metadata.prompt_token_count
-    tokens_response = response.usage_metadata.candidates_token_count 
+        if response.usage_metadata is None:
+            raise RuntimeError("api request failed")
 
-    if args.verbose:
-        print(f"User prompt: {content}")
-        print(f"Prompt tokens: {tokens_prompt}")
-        print(f"Response tokens: {tokens_response}")
-
-    if not response.function_calls:
-        print("Response:")
-        print(response.text)
-        return
-
-    function_results = []
-    for function_call in response.function_calls:
-        # print(f"Calling function: {function_call.name}({function_call.args})")
-        function_call_result = call_function(function_call, args.verbose)
-
-        if not function_call_result.parts:
-            raise Exception("Empty parts list")
-        
-        if not function_call_result.parts[0].function_response:
-            raise Exception("Not a FunctionResponse object")
-        
-        if not function_call_result.parts[0].function_response.response:
-            raise Exception("Not a function result")
-        
-        function_results.append(function_call_result.parts[0])
+        tokens_prompt = response.usage_metadata.prompt_token_count
+        tokens_response = response.usage_metadata.candidates_token_count 
 
         if args.verbose:
-            print(f"-> {function_call_result.parts[0].function_response.response}")
+            print(f"User prompt: {content}")
+            print(f"Prompt tokens: {tokens_prompt}")
+            print(f"Response tokens: {tokens_response}")
+
+        if not response.function_calls:
+            print("Response:")
+            print(response.text)
+            return
+
+        function_results = []
+        for function_call in response.function_calls:
+            # print(f"Calling function: {function_call.name}({function_call.args})")
+            function_call_result = call_function(function_call, args.verbose)
+
+            if not function_call_result.parts:
+                raise Exception("Empty parts list")
+            
+            if not function_call_result.parts[0].function_response:
+                raise Exception("Not a FunctionResponse object")
+            
+            if not function_call_result.parts[0].function_response.response:
+                raise Exception("Not a function result")
+            
+            function_results.append(function_call_result.parts[0])
+
+            if args.verbose:
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+        
+        messages.append(types.Content(role="user", parts=function_results))
+
+    print("Agent stopped because it reached the maximum number of iterations.")
+    sys.exit(1)
 
 
 if __name__ == "__main__":
