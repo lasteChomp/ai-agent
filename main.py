@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from prompts import system_prompt
+from call_function import available_functions
 
 def main():
     load_dotenv()
@@ -30,7 +31,8 @@ def main():
         contents=messages,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
-            temperature=0
+            temperature=0,
+            tools=[available_functions]
         )
     )
 
@@ -44,8 +46,14 @@ def main():
         print(f"User prompt: {content}")
         print(f"Prompt tokens: {tokens_prompt}")
         print(f"Response tokens: {tokens_response}")
-    print("Response:")
-    print(response.text)
+
+    if not response.function_calls:
+        print("Response:")
+        print(response.text)
+        return
+
+    for function_call in response.function_calls:
+        print(f"Calling function: {function_call.name}({function_call.args})")
 
 
 
